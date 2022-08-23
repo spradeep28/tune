@@ -105,6 +105,7 @@ def run(config: BenchmarkConfig) -> None:
 
     # Run benchmark and reference
     benchmark, outputs = backend.execute(config, is_reference=False)
+    
     ## To support model loading from an input directory passed by the user
     isValidPath = os.path.isdir(os.path.join(config.models_path, config.model))
     if isValidPath:

@@ -32,6 +32,7 @@ from benchmark import Benchmark
 from utils import SEC_TO_NS_SCALE
 
 try:
+    import openvino.runtime as ov
     from openvino.runtime import Core, set_batch
 
     is_openvino_api_2 = True
@@ -184,6 +185,11 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
         ie = Core()
         if is_openvino_api_2:
             net = ie.read_model(model=model_xml, weights=model_bin)
+            ## Support for dynamic shapes
+            for input_layer in net.inputs:
+                input_shape = input_layer.partial_shape
+                input_shape = [1, ov.Dimension()]
+                net.reshape({input_layer: input_shape})
             compiled_model = ie.compile_model(model=net, device_name=config.device.upper(), config=self.config)
             output_layer = compiled_model.output(0)
         else:
@@ -207,7 +213,7 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
         )
 
         input_seqs = {k: v.astype("i8") for k, v in tokenized_inputs.items()}
-        
+                
         # Warmup
         outputs = []
         for _ in trange(config.warmup_runs, desc="Warming up"):
@@ -220,7 +226,6 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
         # Let's not run the benchmark for the reference backend,
         # as we are more interested in the output tensors.
         if not is_reference:
-
             # Run benchmark
             benchmark_duration_ns = config.benchmark_duration * SEC_TO_NS_SCALE
             while sum(benchmark.latencies) < benchmark_duration_ns:
@@ -234,12 +239,10 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
         return benchmark, np.stack(outputs)
 
     def clean(self, config: 'BenchmarkConfig'):
-        if self.isValidPath:
-            return
-        # ov_model_dir = Path(self.ov_model_dir)
+        ov_model_dir = Path(self.ov_model_dir)
 
-        # if ov_model_dir.exists():
-        #     for file in ov_model_dir.iterdir():
-        #         LOGGER.debug(f"Cleaning OpenVINO model: {file}")
-        #         file.unlink()
+        if ov_model_dir.exists():
+            for file in ov_model_dir.iterdir():
+                LOGGER.debug(f"Cleaning OpenVINO model: {file}")
+                file.unlink()
         
