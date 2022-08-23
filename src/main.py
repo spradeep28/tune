@@ -14,6 +14,7 @@
 from logging import getLogger
 from typing import Type, get_args, Union
 
+import os
 import hydra
 import numpy as np
 from hydra.core.config_store import ConfigStore
@@ -104,7 +105,12 @@ def run(config: BenchmarkConfig) -> None:
 
     # Run benchmark and reference
     benchmark, outputs = backend.execute(config, is_reference=False)
-    backend.clean(config)
+    ## To support model loading from an input directory passed by the user
+    isValidPath = os.path.isdir(os.path.join(config.models_path, config.model))
+    if isValidPath:
+        pass
+    else:
+        backend.clean(config)
 
     if reference_config is not None:
         reference_backend_factory = get_class(reference_config.backend._target_)

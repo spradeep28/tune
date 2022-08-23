@@ -1,0 +1,10 @@
+KMP_AFF="verbose,granularity=fine,compact,1,0"
+BACKEND=ov
+LOG_BK=pt-ov-tf
+BATCH_SIZE=1
+SEQ_LEN=32,128,256,512
+BENCH_DURATION=20
+WARMUP_RUN=5
+N_INSTS=(1)
+MODELS=(bert-base-cased)
+MODELS_PATH=('/home/ubuntu/tune')

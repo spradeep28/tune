@@ -79,3 +79,6 @@ class BenchmarkConfig:
 
     # Reference backend implementation that will be used to generate reference (output tensors)
     reference: Optional[str] = None
+
+    # Models path
+    models_path: Optional[str] = None
