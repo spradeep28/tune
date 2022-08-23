@@ -1,3 +1,4 @@
+# Ref: https://stackoverflow.com/questions/62678601/how-to-plot-all-dataframes-from-a-dictionary-of-dataframes
 import os 
 import glob
 import argparse
@@ -21,43 +22,91 @@ args.add_argument('-i', '--input_dir', help='Benchmark csv files directory path'
 args.add_argument('-o', '--output_dir', help='Output results summary file .csv', required=False, type=str, default='result_summary.csv & plot_results.csv')
 
 def main():
-    args = parser.parse_args()
-    for file_name in os.listdir(args.input_dir):
-        model_name = file_name.split('.')[0]
-        df = pd.read_csv(os.path.join(args.input_dir, file_name), encoding = "utf-8")
-        df = df.sort_values('backend')
-        df = df.sort_values('seq_len')
+     args = parser.parse_args()
+
+     cpu_info = cpuinfo.get_cpu_info()
+     cpu_brand = cpu_info['brand_raw']
+     num_cores = cpu_info['count']
+
+     for file_name in os.listdir(args.input_dir):
+          model_name = file_name.split('.')[0]
+          df = pd.read_csv(os.path.join(args.input_dir, file_name), encoding = "utf-8")
+          backends = df['backend'].unique()
+          print(f'Backends: {backends}')
+
+          data_frames = {}
+          for b in backends:
+               back_df = df.loc[df['backend'].str.contains(b), :]
+               data_frames[b] = back_df
+          
+          # create color mapping based on all unique values of site_target
+          unique_site = {latency for v in data_frames.values() for latency in df['latency_mean (ms)'].unique()}  # get unique sites
+          colors = sns.color_palette('husl', n_colors=len(unique_site))  # get a number of colors
+          cmap = dict(zip(unique_site, colors))  # zip values to colors
+
+          num_rows, num_cols = 2, 1
+          fig, (ax1, ax2) = plt.subplots(num_rows, num_cols)
+          plt.rcParams["figure.figsize"] = (20,20)
+
+          for i, (backend_, dfs) in enumerate(data_frames.items(), 1):
+               #print(f'Backend: {backend_}; DF: {dfs}')
+               plt.subplot(num_rows, num_cols, i)
+               subplt = sns.scatterplot(data=dfs, x='seq_len', y='latency_mean (ms)', hue='latency_mean (ms)', palette=cmap)
+               #dfs.plot(x='seq_len', y='latency_mean (ms)', style='o')
+               subplt.legend_.remove()
+               plt.title(f'DataFrame: {backend_}')
+
+          plt.tight_layout()
+
+          plt.title(f'Performance of {model_name} on \n {cpu_brand}, {num_cores} cores', loc='right')
+
+          results_path = os.path.join(args.output_dir, f'{model_name}.png')
+          plt.savefig(results_path)
+
+
+        ########################## Old way of plotting ############################
+     #    df = df.sort_values('backend')
+     #    df = df.sort_values('seq_len')
         
-        cpu_info = cpuinfo.get_cpu_info()
-        cpu_brand = cpu_info['brand_raw']
-        num_cores = cpu_info['count']
+     #    cpu_info = cpuinfo.get_cpu_info()
+     #    cpu_brand = cpu_info['brand_raw']
+     #    num_cores = cpu_info['count']
                 
-        ########################################################################
-        df.set_index('seq_len', inplace=True)
+     #    ########################################################################
+     #    df.set_index('seq_len', inplace=True)
 
-        latency_data = df.groupby('backend')['latency_mean (ms)']
-        throughput_data = df.groupby('backend')['throughput']        
-        #######################################################################################
-        fig, (ax1, ax2) = plt.subplots(1, 2)
-        plt.rcParams["figure.figsize"] = (20,20)
-        latency_data.plot(ax=ax1, legend=True)
-        throughput_data.plot(ax=ax2, legend=True)
-        ax1.set_ylabel("latency_mean (ms)")
-        ax2.set_ylabel("Throughput (frames/s)")
+     #    #print()
 
-        ax1.grid(which='major', linestyle='-', linewidth='0.5', color='black')
-        ax2.grid(which='major', linestyle='-', linewidth='0.5', color='black')
+     #    latency_data = df.groupby('backend')['latency_mean (ms)']
+     #    throughput_data = df.groupby('backend')['throughput']        
+     #    #######################################################################################
+     #    fig, (ax1, ax2) = plt.subplots(1, 2)
+     #    plt.rcParams["figure.figsize"] = (20,20)
 
-        plt.subplots_adjust(wspace=0.4)
+     #    latency_data.plot(ax=ax1, legend=True, xticks=df.index)
+     #    throughput_data.plot(ax=ax2, legend=True, xticks=df.index)
+     #    ax1.set_ylabel("latency_mean (ms)")
+     #    ax2.set_ylabel("Throughput (frames/s)")
 
-        plt.title(f'Performance of {model_name} on \n {cpu_brand}, {num_cores} cores', loc='right')
+     #    ax1.grid(which='major', linestyle='-', linewidth='0.5', color='black')
+     #    ax2.grid(which='major', linestyle='-', linewidth='0.5', color='black')
+
+     #    #for i,j in latency_data.items():
+     #    for key, df_group in latency_data:
+     #      for row_index, row in df_group.iterrows():
+     #           print(f'Key: {row_index}: Val: {row} \n')
+     #      #ax1.annotate(str(latency_data.get_group(key)), xy=(df.index, str(latency_data.get_group(key))))
+
+     #    plt.subplots_adjust(wspace=0.4)
+
+     #    plt.title(f'Performance of {model_name} on \n {cpu_brand}, {num_cores} cores', loc='right')
         
-        results_path = os.path.join(args.output_dir, f'{model_name}.png')
-        plt.savefig(results_path)
+     #    results_path = os.path.join(args.output_dir, f'{model_name}.png')
+     #    plt.savefig(results_path)
 
-        # for key, item in ydata:
-        #     #print(ydata.get_group(key), "\n\n")
-        #     print(f'{key}: {ydata.get_group(key)} \n')
+     #    # for key, item in ydata:
+     #    #     #print(ydata.get_group(key), "\n\n")
+     #    #     print(f'{key}: {ydata.get_group(key)} \n')
 
 
 if __name__ == '__main__':

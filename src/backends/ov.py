@@ -188,7 +188,8 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
             ## Support for dynamic shapes
             for input_layer in net.inputs:
                 input_shape = input_layer.partial_shape
-                input_shape = [1, ov.Dimension()]
+                input_shape = [ov.Dimension(), ov.Dimension()]
+                #input_shape = [1, ov.Dimension()]
                 net.reshape({input_layer: input_shape})
             compiled_model = ie.compile_model(model=net, device_name=config.device.upper(), config=self.config)
             output_layer = compiled_model.output(0)
