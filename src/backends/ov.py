@@ -76,9 +76,11 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
         ## we check if the model name in config is in fact a model directory 
         ## with an existing OpenVINO IR
         LOGGER.info(f"OpenVINO model directory {output_dir}")
-        for file_name in os.listdir(output_dir):
-            if file_name.endswith('.xml'):
-                return output_dir     
+        isValidPath = os.path.isdir(output_dir)
+        if isValidPath:
+            for file_name in os.listdir(output_dir):
+                if file_name.endswith('.xml'):
+                    return output_dir     
         try:
             LOGGER.info("Exporting PyTorch model to ONNX ...")
             onnx_convert_cmd = f"{sys.executable} -m transformers.onnx \
@@ -147,10 +149,10 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
             if isValidPath:
                 print(f'Model directory {os.path.join(config.models_path, config.model)} is a valid path: {isValidPath}')
                 ov_model_dir = Path(os.path.join(config.models_path, config.model))
+            else:
+                ov_model_dir = Path(f"{OPENVINO_IR_FOLDER}/{config.model}.ov.{getpid()}")
         else:
             ov_model_dir = Path(f"{OPENVINO_IR_FOLDER}/{config.model}.ov.{getpid()}")
-        
-        #LOGGER.info(f"OpenVINO model directory {ov_model_dir}")
 
         OpenVINORuntimeBackend.convert(config, ov_model_dir, config.backend.opset)
 
@@ -189,7 +191,6 @@ class OpenVINORuntimeBackend(Backend[OpenVINORuntimeConfig]):
             for input_layer in net.inputs:
                 input_shape = input_layer.partial_shape
                 input_shape = [ov.Dimension(), ov.Dimension()]
-                #input_shape = [1, ov.Dimension()]
                 net.reshape({input_layer: input_shape})
             compiled_model = ie.compile_model(model=net, device_name=config.device.upper(), config=self.config)
             output_layer = compiled_model.output(0)
