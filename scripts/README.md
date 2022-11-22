@@ -2,27 +2,20 @@
 
 ```bash
 # Clone project tune:
-git clone -b ov-dev https://github.com/karkadad/tune.git
+git clone -b ov22blog https://github.com/spradeep28/tune.git
 ```
 
 ```bash
 # Launching benchmarking shell script 
-./scripts/launch.sh
+./scripts/launch.sh ./benchmarking_config/hf_config.txt ./outputs/
 # Expected output: Benchmark results .csv files under "<project clone path>/tune/outputs/default/"
-```
-
-```bash
-# Parsing results from Step 2 into single model csv file 
-# Command line: $tune/scripts: 
-python3 launch_results_parser.py -i <project clone path>/tune/outputs/default/
-# Expected output: CSV file(s) with "<hf_model_name>.csv"
 ```
 
 ```bash
 # Parsing "<hf_model_name>.csv" for benchmark plot
 # Command Line $tune/scripts: 
-python3 parser_with_selec_params.py -i <project clone path>/tune/scripts/.
-# Expected output: csv file with formated results table for easy plotting and visualization
+python3 parser_with_selec_params.py -i <project clone path>/tune/outputs/.
+# Expected output: csv file with results in table-format for easy plotting and visualization
 ```
  
 #### Note: To run GPT2/ROBERTA set below environment
