@@ -1,0 +1,10 @@
+KMP_AFF="verbose,granularity=fine,compact,1,0"
+BACKEND="torchscript,tensorflow,ov"
+LOG_BK=pt-ov-tf
+BATCH_SIZE=8,4
+SEQ_LEN=20,32
+BENCH_DURATION=20
+WARMUP_RUN=5
+N_INSTS=(1 2)
+MODELS=(bert-base-cased)
+MODELS_PATH=('/home/psakhamo/hf_blog/testing/tune')

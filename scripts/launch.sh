@@ -57,4 +57,4 @@ done;
 python ./scripts/launch_results_parser.py -i ./outputs/default/ -o $2
 
 # Plot results
-python ./scripts/plot_results.py -i $2 -o $2
+#python ./scripts/plot_results.py -i $2 -o $2

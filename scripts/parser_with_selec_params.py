@@ -17,10 +17,10 @@ import pandas as pd
 import sys, os
 from argparse import ArgumentParser, SUPPRESS
 
-NUM_OF_INSTANCE = [1, 2, 3, 4]  # Mapped values of (1, 2, 4, 8)
-SEQ_LENGTH = [20, 32, 128, 384, 512]
-BATCH_SIZE = [8, 4, 2, 1]
-BACK_END = ['pytorch', 'openvino', 'tensorflow']
+NUM_OF_INSTANCE = [1, 2] #, 3, 4]  # Mapped values of (1, 2, 4, 8)
+SEQ_LENGTH = [20, 32] #, 128, 384, 512]
+BATCH_SIZE = [8, 4] #[8, 4, 2, 1]
+BACK_END = ['torchscript', 'openvino', 'tensorflow']
 
 def build_argparser():
 
@@ -49,7 +49,7 @@ def plot_results(summary_df):
                 if not df.empty:
                    back_end = df.backend.unique()
                    #df_temp = pd.DataFrame()
-                   df_ = pd.DataFrame(columns=['sl','inst','bs','threads','pytorch','openvino'])
+                   df_ = pd.DataFrame(columns=['sl','inst','bs','threads','pytorch','openvino', 'tensorflow'])
                    ov_l = []
                    pt_l = []
                    num_threads = []
@@ -57,11 +57,13 @@ def plot_results(summary_df):
                        if row.loc['backend'] in BACK_END:
                            if row.backend == 'openvino':
                                ov_latency = row.loc['latency_mean (ms)']
-                           elif row.backend == 'pytorch':
+                           elif row.backend == 'torchscript':
                                pt_latency = row.loc['latency_mean (ms)']
+                           elif row.backend == 'tensorflow':
+                               tf_latency = row.loc['latency_mean (ms)']
 
                    df_.loc[df_.index.max() + 1, :] = [row.loc['seq_len'], row.loc['instance_id'], row.loc['batch_size'], \
-                                                           row.loc['num_threads'], pt_latency, ov_latency]
+                                                           row.loc['num_threads'], pt_latency, ov_latency, tf_latency]
                    plot_df = plot_df.append(df_)
     plot_df = plot_df.drop_duplicates()
     plot_df.to_csv("plot_results.csv", encoding='utf-8', index=False)

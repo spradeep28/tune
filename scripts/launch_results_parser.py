@@ -12,12 +12,12 @@ def build_argparser():
      -o <optional: path to output dir to save summary_results.csv>
      '''
 
-    parser = ArgumentParser(prog='launch_results_parser.py',
+    parser = ArgumentParser(prog='inter_results.py',
                             description='Intermediate benchmark results',
                             epilog=usage)
     args = parser.add_argument_group('Options')
     args.add_argument('-i', '--input_dir', help='Path to root directory of csv files with model performance data', required=True)
-    args.add_argument('-o', '--output_dir', help='Output results directory', required=False, type=str, default='plot_results')
+    args.add_argument('-o', '--output_dir', help='Output results summary file .csv', required=False, type=str, default='result_summary.csv')
 
     return parser
 
@@ -25,41 +25,46 @@ def main():
     
     args = build_argparser().parse_args()
 
-    ## Check if the results directory exists
+    df_ = pd.DataFrame()
+
     if not os.path.isdir(args.input_dir):
         print("Error: Invalid root directory")
         return -1
     else:
         root_path = args.input_dir
 
-    ## Creating a new output directory 
-    ## if user provided output directory doesn't exist
-    if args.output_dir is not None: 
-        if not os.path.isdir(args.output_dir):
-            print(f"The specified output directory: {args.output_dir} doesn't exist! - Creating a new directory")
-            os.makedirs(args.output_dir)
+    l_root_path = len(os.path.normpath(root_path).split(os.path.sep))
+    idx = 0
+   
+    root_instance_dir = []
 
-    ## Creating model specific results dataframes by parsing perf results csv
-    data_frames = {}
-    for curr_dir, list_dirs, file_names in os.walk(root_path):        
+    for ts, folder in sorted([(os.path.getctime(root_path + dir),root_path + dir) for dir in os.listdir(root_path)]):
+        root_instance_dir.append(os.path.normpath(folder).split(os.path.sep)[-1].lower())
+    #print("root_instance_dir =", root_instance_dir)
+
+    for curr_dir, list_dirs, file_names in os.walk(root_path):
+        l_curr_dir = len(os.path.normpath(curr_dir).split(os.path.sep))
+        if l_curr_dir == (l_root_path + 1):
+            curr_dir_name = os.path.normpath(curr_dir).split(os.path.sep)[-1]
+            idx = root_instance_dir.index(curr_dir_name) + 1
+        
         for f in file_names:
+            curr_dir_split = os.path.normpath(curr_dir).split(os.path.sep)
             f_ext = os.path.splitext(f)[-1].lower()
             if f_ext == ".csv":
-                fn = f.split('-')
-                saved_fn = '_'.join(st for st in fn[1:-1])
-                f_csv = os.path.join(curr_dir, f)
-                df_csv = pd.read_csv(f_csv)
-                if saved_fn in data_frames:
-                    data_frames[saved_fn] = data_frames[saved_fn].append(df_csv)
-                else:
-                    data_frames[saved_fn] = df_csv
-    
-    ## Save results in the output directory
-    for saved_fn, val_df in data_frames.items():
-        print(f'Saving {saved_fn} profiling results')
-        val_df.to_csv(os.path.join(args.output_dir, str(saved_fn)+".csv"), encoding='utf-8', index=False)
-    
-    print(f"Results parsed and available in directory: {args.output_dir}")
+               fn = f.split('-')
+               f_csv = os.path.join(curr_dir, f)
+               df_csv = pd.read_csv(f_csv)
+               df_csv['instance_id'] = [idx]
+               df_ = df_.append(df_csv)
+    for i, s in enumerate(fn):
+        if i == 0:
+           st = str('')
+        if i > 0 and i < len(fn) - 1:
+           st = st + s
+        if i >= 1   and i < len(fn) - 2:
+           st += '_'
+    df_.to_csv(str(st)+".csv", encoding='utf-8', index=False)
 
 if __name__ == '__main__':
     sys.exit(main() or 0)
