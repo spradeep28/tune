@@ -16,11 +16,17 @@
 import pandas as pd
 import sys, os
 from argparse import ArgumentParser, SUPPRESS
+import parser_config as pc
 
-NUM_OF_INSTANCE = [1, 2] #, 3, 4]  # Mapped values of (1, 2, 4, 8)
-SEQ_LENGTH = [20, 32] #, 128, 384, 512]
-BATCH_SIZE = [8, 4] #[8, 4, 2, 1]
-BACK_END = ['torchscript', 'openvino', 'tensorflow']
+#NUM_OF_INSTANCE = [1, 2] #, 3, 4]  # Mapped values of (1, 2, 4, 8)
+#SEQ_LENGTH = [20, 32] #, 128, 384, 512]
+#BATCH_SIZE = [8, 4] #[8, 4, 2, 1]
+#BACK_END = ['torchscript', 'openvino', 'tensorflow']
+
+NUM_OF_INSTANCE = []
+SEQ_LENGTH = []
+BATCH_SIZE = []
+BACK_END = []
 
 def build_argparser():
 
@@ -34,33 +40,34 @@ def build_argparser():
                             epilog=usage)
     args = parser.add_argument_group('Options')
     args.add_argument('-i', '--input_dir', help='Benchmark csv files direcotry path', required=True)
+    args.add_argument('-c', '--config_file', help='Path to HF tune config params file (txt)', required=True)
     args.add_argument('-o', '--output_dir', help='Output results summary file .csv', required=False, type=str, default='result_summary.csv & plot_results.csv')
     
     return parser
 
-def plot_results(summary_df):
-     
+def plot_results(summary_df, seqLen, numInst, backEnd, batchSize):
+
     plot_df = pd.DataFrame()
-    for seq_len in SEQ_LENGTH:
-        for idx, no_ins in enumerate(NUM_OF_INSTANCE):
-                df = summary_df.loc[(summary_df['batch_size'] == BATCH_SIZE[idx]) & (summary_df['seq_len'] == seq_len) & \
+    for seq_len in seqLen:
+        for idx, no_ins in enumerate(numInst):
+                df = summary_df.loc[(summary_df['batch_size'] == batchSize[idx]) & (summary_df['seq_len'] == seq_len) & \
                                        (summary_df['instance_id'] == no_ins)]
               
                 if not df.empty:
                    back_end = df.backend.unique()
                    #df_temp = pd.DataFrame()
-                   df_ = pd.DataFrame(columns=['sl','inst','bs','threads','pytorch','openvino', 'tensorflow'])
+                   df_ = pd.DataFrame(columns=['sl','inst','bs','threads','torchscript','openvino', 'tensorflow'])
                    ov_l = []
                    pt_l = []
                    num_threads = []
                    for index, row in df.iterrows():
-                       if row.loc['backend'] in BACK_END:
-                           if row.backend == 'openvino':
-                               ov_latency = row.loc['latency_mean (ms)']
-                           elif row.backend == 'torchscript':
+                       if row.loc['backend'] in backEnd:
+                           if row.backend == 'torchscript':
                                pt_latency = row.loc['latency_mean (ms)']
                            elif row.backend == 'tensorflow':
                                tf_latency = row.loc['latency_mean (ms)']
+                       if row.loc['backend'] == 'openvino' and row.backend == 'openvino':
+                               ov_latency = row.loc['latency_mean (ms)']
 
                    df_.loc[df_.index.max() + 1, :] = [row.loc['seq_len'], row.loc['instance_id'], row.loc['batch_size'], \
                                                            row.loc['num_threads'], pt_latency, ov_latency, tf_latency]
@@ -77,16 +84,22 @@ def main():
     if not os.listdir(args.input_dir):
         print("ERROR: No files found...")
         return -1
-        
+    if not os.path.isfile(args.config_file):
+        print("ERROR: Config file not found")
+        return -1
+
+    # parsing HF tune config file to read batch_size, sequnece length and number of instance params
+    hf_config = open(args.config_file)
+    BACK_END, BATCH_SIZE, SEQ_LENGTH, NUM_OF_INSTANCE = pc.hfconfig_parser(hf_config)
+    
+    print("Parsing benchmark results .csv..!")
+
     summary_df = pd.DataFrame()
     for file_name in os.listdir(args.input_dir):
         csv = os.path.isfile(os.path.join(args.input_dir, file_name))
-        #print("file = ", file_name)
         f_n = os.path.splitext(file_name)[0]
-        #print("f_n = ", f_n)
         f_ext = os.path.splitext(file_name)[-1].lower()
         if f_ext == ".csv" and csv:
-        #if csv:
             df = pd.read_csv(os.path.join(args.input_dir, file_name))
             back_end = df.backend.unique()
             seq_len = df.seq_len.unique()
@@ -94,10 +107,8 @@ def main():
             num_threads = df.num_threads.unique()
             num_instance = df['instance_id'].unique()
             total_inst = len(num_instance)
-            #print("total_inst = ", total_inst)
             # Backend
             for backend in back_end:
-              #print("in loop backend", backend)
               df_backend = df.loc[df['backend'] == backend]
               # Sequnce length
               for sl in seq_len:
@@ -116,8 +127,9 @@ def main():
                           summary_df = summary_df.append(summary_temp.assign(backend=backend))
     summary_df = summary_df.drop_duplicates()
     summary_df.to_csv("results_summary.csv", encoding='utf-8', index=False)
-    
-    plot_results(summary_df)
+    print("results_summary.csv generated..!")
+    plot_results(summary_df, SEQ_LENGTH, NUM_OF_INSTANCE, BACK_END, BATCH_SIZE)
+    print("plot_results .csv generated..!")
 
 if __name__ == '__main__':
     sys.exit(main() or 0)
