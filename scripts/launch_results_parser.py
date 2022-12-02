@@ -4,6 +4,8 @@
 import sys, os
 from argparse import ArgumentParser
 import pandas as pd
+from datetime import datetime
+#import time
 
 def build_argparser():
 
@@ -64,7 +66,11 @@ def main():
            st = st + s
         if i >= 1   and i < len(fn) - 2:
            st += '_'
-    df_.to_csv(str(st)+".csv", encoding='utf-8', index=False)
+    if not os.path.exists(str(args.output_dir)):
+        # if the demo_folder directory is not present
+        # then create it.
+        os.makedirs(str(args.output_dir))
+    df_.to_csv(str(args.output_dir) + "/" + str(datetime.timestamp(datetime.now())) + '_' + str(st) +".csv", encoding='utf-8', index=False)
 
 if __name__ == '__main__':
     sys.exit(main() or 0)
