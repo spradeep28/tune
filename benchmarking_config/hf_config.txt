@@ -8,3 +8,5 @@ WARMUP_RUN=5
 N_INSTS=(1 2)
 MODELS=(bert-base-cased bert-base-uncased)
 MODELS_PATH=('/home/psakhamo/hf_blog/testing/tune')
+RUN_RESULTS=('./outputs')
+MODEL_RESULTS=('./results')
