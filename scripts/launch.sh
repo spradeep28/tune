@@ -23,11 +23,12 @@ echo "WARMUP_RUN is $WARMUP_RUN"
 echo "N_INSTS is $N_INSTS"
 echo "MODELS is $MODELS"
 
-rm -rf outputs
+#rm -rf outputs
 rm -rf $2
 
 # Run benchmark
 for MODEL in ${MODELS[@]}; do
+    rm -rf outputs
     for N_INST in ${N_INSTS[@]}; do
         cmd_to_run="PYTHONPATH=src python3 launcher.py \
         --multi_instance \
@@ -50,11 +51,12 @@ for MODEL in ${MODELS[@]}; do
         echo "*** Starting benchmark with :"
         echo $cmd_to_run
         eval $cmd_to_run
+    python ./scripts/launch_results_parser.py -i ./outputs/default/ -o $2
     done
 done;
 
 # Parse results
-python ./scripts/launch_results_parser.py -i ./outputs/default/ -o $2
+#python ./scripts/launch_results_parser.py -i ./outputs/default/ -o $2
 
 # Plot results
 #python ./scripts/plot_results.py -i $2 -o $2
