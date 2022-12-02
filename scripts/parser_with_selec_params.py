@@ -60,6 +60,9 @@ def plot_results(summary_df, seqLen, numInst, backEnd, batchSize):
                    ov_l = []
                    pt_l = []
                    num_threads = []
+                   pt_latency = -1
+                   tf_latency = -1
+                   ov_latency = -1
                    for index, row in df.iterrows():
                        if row.loc['backend'] in backEnd:
                            if row.backend == 'torchscript':
