@@ -22,6 +22,8 @@ echo "BENCH_DURATION is $BENCH_DURATION"
 echo "WARMUP_RUN is $WARMUP_RUN"
 echo "N_INSTS is $N_INSTS"
 echo "MODELS is $MODELS"
+echo "RUN_RESULTS is $RUN_RESULTS"
+echo "MODEL_RESULTS is $MODEL_RESULTS"
 
 #rm -rf outputs
 rm -rf $2
@@ -51,9 +53,11 @@ for MODEL in ${MODELS[@]}; do
         echo "*** Starting benchmark with :"
         echo $cmd_to_run
         eval $cmd_to_run
-    python ./scripts/launch_results_parser.py -i ./outputs/default/ -o $2
     done
+    python ./scripts/launch_results_parser.py -i $RUN_RESULTS/default/ -o $MODEL_RESULTS
 done;
+
+python ./scripts/parser_with_selec_params.py -i $MODEL_RESULTS/. -c $1
 
 # Parse results
 #python ./scripts/launch_results_parser.py -i ./outputs/default/ -o $2
